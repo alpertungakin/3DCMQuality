@@ -121,7 +121,7 @@ def triples2graph(initialList):
     cityObjIds = []
     for el in initialList:
         if el[2] == 'CityObjects' and el[1] == 'typeof':
-            temp_obj = URIRef(rootSpace + el[0])
+            temp_obj = rootSpace + el[0]
             cityObjIds.append(el[0])
             cityObjects.append(temp_obj)
     
@@ -178,20 +178,10 @@ def triples2graph(initialList):
             
     g.add((model, URIRef(CityGML+"extent"), Literal(extent)))
     g.add((model, ODRL2.version, Literal(version[0])))
-    g.add((model, OWL.oneOf, Literal(cityObjects)))
+    for cityObject in cityObjects:
+        g.add((model, OWL.oneOf, URIRef(cityObject)))
     g.add((model, URIRef(CityGML+"transformationMatrix"), Literal(list(transformationMatrix3x4.flatten()))))
 
-    
-    
-            
-        
-        
-        
-        
-        
-        
-        
-        
     return g
         
 if __name__ == "__main__":   
