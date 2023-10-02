@@ -1,0 +1,16 @@
+@prefix citygml: <http://www.theworldavatar.com/ontology/ontocitygml/OntoCityGML.owl#> .
+@prefix geo: <http://www.opengis.net/ont/geosparql#> .
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+
+<http://example.org/#model> a citygml:CityModel ;
+    citygml:extent "POLYGON ((0 0, 0 1, 1 1, 0 0))" ;
+    citygml:transformationMatrix "[0.001, 0.0, 0.0, 0.0, 0.0, 0.001, 0.0, 0.0, 0.0, 0.0, 0.001, 0.0]" ;
+    owl:oneOf <http://example.org/#id-1> ;
+    odrl:version "1.1" .
+
+<http://example.org/#id-1> a citygml:GenericCityObject ;
+    geo:hasGeometry <http://example.org/#id-1poly> .
+
+<http://example.org/#id-1poly> a citygml:lod1Solid ;
+    geo:asWKT "['POLYGON Z ((0 0 1000, 1000 0 1000, 1000 1000 1000, 0 1000 1000, 0 0 1000))', 'POLYGON Z ((0 0 0, 1000 0 0, 1000 0 1000, 0 0 1000, 0 0 0))', 'POLYGON Z ((1000 0 0, 1000 1000 0, 1000 1000 1000, 1000 0 1000, 1000 0 0))', 'POLYGON Z ((1000 1000 0, 0 1000 0, 0 1000 1000, 1000 1000 1000, 1000 1000 0))', 'POLYGON Z ((0 1000 0, 0 0 0, 0 0 1000, 0 1000 1000, 0 1000 0))', 'POLYGON Z ((0 1000 0, 1000 1000 0, 1000 0 0, 0 0 0, 0 1000 0))']"^^geo:wktLiteral .
