@@ -6,7 +6,7 @@ Created on Thu Oct 19 15:02:58 2023
 """
 
 import json
-# from shapely.geometry import Polygon, Point, LineString
+from shapely.geometry import Polygon
 from rdflib import Graph, Literal, RDF, URIRef
 from rdflib import Namespace
 from rdflib.namespace import NamespaceManager, CSVW, DC, DCAT, DCTERMS, DOAP, FOAF, GEO, ODRL2, ORG, OWL, \
@@ -17,9 +17,7 @@ import rdfpandas as rpd
 import pandas as pd
 import cjio as cj
 from cjio import cityjson
-import time
 
-start = time.time()
 with open("DenHaag_01.city.json") as file:
     plain = json.load(file)
     
@@ -59,7 +57,7 @@ for obj in cityObjIds:
             for i in range(len(geometry.boundaries[0])):
                 surfacedf["{}_{}".format(obj,i)] = {}
                 surfacedf["{}_{}".format(obj,i)]["parent"] = obj
-                surfacedf["{}_{}".format(obj,i)]["geometry"] = str(geometry.boundaries[0][i][0])
+                surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(geometry.boundaries[0][i][0]).wkt
                 surfacedf["{}_{}".format(obj,i)]["semantic"] = geometry.surfaces[i]["type"]
                 if "attributes" in geometry.surfaces[i]:
                    surfacedf["{}_{}".format(obj,i)]["normal"] =  geometry.surfaces[i]["attributes"]["Direction"]
@@ -71,21 +69,22 @@ for obj in cityObjIds:
             for i in range(len(geometry.boundaries)):
                 surfacedf["{}_{}".format(obj,i)] = {}
                 surfacedf["{}_{}".format(obj,i)]["parent"] = obj
-                surfacedf["{}_{}".format(obj,i)]["geometry"] = str(geometry.boundaries[i][0])
+                try:
+                    surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(geometry.boundaries[i][0]).wkt
+                except TypeError:
+                    surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(geometry.boundaries[i][0][0]).wkt
+
+
                 
 surfacedf = pd.DataFrame(surfacedf)
 surfacedf = surfacedf.transpose()
 
 namespace_manager = NamespaceManager(Graph())
-namespace_manager.bind('skos', SKOS)
-namespace_manager.bind('rdfpandas', Namespace('http://github.com/cadmiumkitty/rdfpandas/'))
-modelGraph = rpd.graph.to_graph(modeldf, namespace_manager)
-surfaceGraph = rpd.graph.to_graph(surfacedf, namespace_manager)
-s = surfaceGraph.serialize(format = 'ttl')
-g = modelGraph.serialize(format = 'ttl')
-end = time.time()
-print("--- %s seconds ---" % (end - start))
-# str to WKT
+# namespace_manager.bind('skos', SKOS)
+# namespace_manager.bind('rdfpandas', Namespace('http://github.com/cadmiumkitty/rdfpandas/'))
+surfaceG = rpd.graph.to_graph(surfacedf, namespace_manager)
+surface_str = surfaceG.serialize(format = 'ttl')
+modelG = rpd.graph.to_graph(modeldf, namespace_manager)
+model_str = modelG.serialize(format = 'ttl')
 # rdf merge
 # pgraph to linked
-
