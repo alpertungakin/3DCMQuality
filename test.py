@@ -21,6 +21,9 @@ from cjio import cityjson
 with open("DenHaag_01.city.json") as file:
     plain = json.load(file)
     
+rootSpace = "http://example.org/#"
+CityGML_URI = "http://www.theworldavatar.com/ontology/ontocitygml/OntoCityGML.owl#"
+
 model = cityjson.load("DenHaag_01.city.json")
 modeldf = model.to_dataframe()
 
@@ -74,17 +77,31 @@ for obj in cityObjIds:
                 except TypeError:
                     surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(geometry.boundaries[i][0][0]).wkt
 
-
-                
 surfacedf = pd.DataFrame(surfacedf)
 surfacedf = surfacedf.transpose()
-
 namespace_manager = NamespaceManager(Graph())
-# namespace_manager.bind('skos', SKOS)
-# namespace_manager.bind('rdfpandas', Namespace('http://github.com/cadmiumkitty/rdfpandas/'))
 surfaceG = rpd.graph.to_graph(surfacedf, namespace_manager)
 surface_str = surfaceG.serialize(format = 'ttl')
 modelG = rpd.graph.to_graph(modeldf, namespace_manager)
 model_str = modelG.serialize(format = 'ttl')
+surfaceTriples_t = list(surfaceG.triples((None,None,None)))
+modelTriples_t = list(modelG.triples((None,None,None)))
+modelTriples = []
+surfaceTriples = []
+for t in modelTriples_t:
+    modelTriples.append([t[0].value, t[1].value, t[2].value])
+for s in surfaceTriples_t:
+    surfaceTriples.append([s[0].value, s[1].value, s[2].value])
+
+del t,s
+
+hasGeometryRels = []
+for t in modelTriples:
+    for s in surfaceTriples:
+        if s[2] == t[0]:
+            hasGeometryRels.append([t[0], "hasGeometry", s[0]])
+modelTriples = modelTriples + hasGeometryRels
+
+
 # rdf merge
 # pgraph to linked
