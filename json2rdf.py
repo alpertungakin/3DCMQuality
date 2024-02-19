@@ -60,8 +60,11 @@ def main(path):
                 for i in range(len(geometry.boundaries[0])):
                     surfacedf["{}_{}".format(obj,i)] = {}
                     surfacedf["{}_{}".format(obj,i)]["parent"] = obj
+                    curr_normal = getNormal(np.array(geometry.boundaries[0][i][0]))
+                    surfacedf["{}_{}".format(obj,i)]["normalX"] = curr_normal[0]
+                    surfacedf["{}_{}".format(obj,i)]["normalY"] = curr_normal[1]
+                    surfacedf["{}_{}".format(obj,i)]["normalZ"] = curr_normal[2]
                     surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(geometry.boundaries[0][i][0]).wkt
-                    surfacedf["{}_{}".format(obj,i)]["normal"] = getNormal(np.array(geometry.boundaries[0][i][0]))
                     surfacedf["{}_{}".format(obj,i)]["semantic"] = geometry.surfaces[i]["type"]
                     if "attributes" in geometry.surfaces[i]:
                        surfacedf["{}_{}".format(obj,i)]["direction"] =  geometry.surfaces[i]["attributes"]["Direction"]
@@ -75,11 +78,9 @@ def main(path):
                     surfacedf["{}_{}".format(obj,i)]["parent"] = obj
                     try:
                         surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(geometry.boundaries[i][0]).wkt
-                        surfacedf["{}_{}".format(obj,i)]["normal"] = getNormal(np.array(geometry.boundaries[i][0]))
 
                     except TypeError:
                         surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(geometry.boundaries[i][0][0]).wkt
-                        surfacedf["{}_{}".format(obj,i)]["normal"] = getNormal(np.array(geometry.boundaries[i][0][0]))
 
     
     surfacedf = pd.DataFrame(surfacedf)
@@ -97,11 +98,18 @@ def main(path):
         surfaceTriples.append([s[0].value, s[1].value, s[2].value])
     del t,s
     
+    parentRelations = []
     hasGeometryRels = []
+    
+    for s in surfaceTriples:
+        if s[1] == "parent":
+            parentRelations.append(s)
+            
     for t in modelTriples:
-        for s in surfaceTriples:
-            if s[2] == t[0]:
+        for s in parentRelations:
+            if t[0] == s[2]:
                 hasGeometryRels.append([t[0], "hasGeometry", s[0]])
+                
     modelTriples = modelTriples + hasGeometryRels
     del t,s
     
@@ -164,10 +172,12 @@ def main(path):
                 surfaceGraph.add((ex.term(s[0]), RDF.type, CSVW.null))
             else:
                 surfaceGraph.add((ex.term(s[0]), RDF.type, citygml.term(s[2]+"Type")))
-        elif s[1] == "normal":
-            surfaceGraph.add((ex.term(s[0]), brep.directionNormalX, Literal(s[2][0], datatype = XSD.double)))
-            surfaceGraph.add((ex.term(s[0]), brep.directionNormalY, Literal(s[2][1], datatype = XSD.double)))
-            surfaceGraph.add((ex.term(s[0]), brep.directionNormalZ, Literal(s[2][2], datatype = XSD.double)))
+        elif s[1] == "normalX":
+            surfaceGraph.add((ex.term(s[0]), brep.directionNormalX, Literal(s[2], datatype = XSD.double)))
+        elif s[1] == "normalY":
+            surfaceGraph.add((ex.term(s[0]), brep.directionNormalY, Literal(s[2], datatype = XSD.double)))
+        elif s[1] == "normalZ":
+            surfaceGraph.add((ex.term(s[0]), brep.directionNormalZ, Literal(s[2], datatype = XSD.double)))
 
     
     resultGraph = modelGraph + surfaceGraph
