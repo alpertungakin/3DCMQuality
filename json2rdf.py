@@ -17,11 +17,13 @@ import rdfpandas as rpd
 import pandas as pd
 import cjio as cj
 from cjio import cityjson
+from functions import getNormal
     
 def main(path):
     rootSpace = "http://example.org/#"
     CityGML_URI = "http://www.theworldavatar.com/ontology/ontocitygml/OntoCityGML.owl#"
     SF_URI = "http://www.opengis.net/ont/sf#"
+    Brep_URI = "https://github.com/OntoBREP/ontobrep/blob/master/owl/ontobrep.owl#"
     model = cityjson.load(path)
     modeldf = model.to_dataframe()
     
@@ -59,6 +61,7 @@ def main(path):
                     surfacedf["{}_{}".format(obj,i)] = {}
                     surfacedf["{}_{}".format(obj,i)]["parent"] = obj
                     surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(geometry.boundaries[0][i][0]).wkt
+                    surfacedf["{}_{}".format(obj,i)]["normal"] = getNormal(np.array(geometry.boundaries[0][i][0]))
                     surfacedf["{}_{}".format(obj,i)]["semantic"] = geometry.surfaces[i]["type"]
                     if "attributes" in geometry.surfaces[i]:
                        surfacedf["{}_{}".format(obj,i)]["normal"] =  geometry.surfaces[i]["attributes"]["Direction"]
@@ -72,8 +75,12 @@ def main(path):
                     surfacedf["{}_{}".format(obj,i)]["parent"] = obj
                     try:
                         surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(geometry.boundaries[i][0]).wkt
+                        #surfacedf["{}_{}".format(obj,i)]["normal"] = getNormal(np.array(geometry.boundaries[i][0]))
+
                     except TypeError:
                         surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(geometry.boundaries[i][0][0]).wkt
+                        #surfacedf["{}_{}".format(obj,i)]["normal"] = getNormal(np.array(geometry.boundaries[i][0][0]))
+
     
     surfacedf = pd.DataFrame(surfacedf)
     surfacedf = surfacedf.transpose()
@@ -103,6 +110,7 @@ def main(path):
     citygml = Namespace(CityGML_URI)
     sf = Namespace(SF_URI)
     ex = Namespace(rootSpace)
+    brep = Namespace(Brep_URI)
     modelGraph.bind("citygml", citygml)
     modelGraph.bind("sf", sf)
     modelGraph.bind("ex", ex)
@@ -113,6 +121,7 @@ def main(path):
     surfaceGraph.bind("ex", ex)
     surfaceGraph.bind("csvw", CSVW)
     surfaceGraph.bind("geo", GEO)
+    surfaceGraph.bind("brep", brep)
     
     modelGraph.add((ex.CityModel, RDF.type, citygml.CityModel))
     modelGraph.add((ex.CityModel, citygml.extent, Literal(model.get_bbox())))
@@ -155,7 +164,11 @@ def main(path):
                 surfaceGraph.add((ex.term(s[0]), RDF.type, CSVW.null))
             else:
                 surfaceGraph.add((ex.term(s[0]), RDF.type, citygml.term(s[2]+"Type")))
-        
+        elif s[1] == "normal":
+            surfaceGraph.add((ex.term(s[0]), brep.directionNormalX, Literal(s[2][0], datatype = XSD.double)))
+            surfaceGraph.add((ex.term(s[0]), brep.directionNormalY, Literal(s[2][1], datatype = XSD.double)))
+            surfaceGraph.add((ex.term(s[0]), brep.directionNormalZ, Literal(s[2][2], datatype = XSD.double)))
+
     
     resultGraph = modelGraph + surfaceGraph
     return resultGraph
