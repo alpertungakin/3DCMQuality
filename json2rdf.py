@@ -64,7 +64,7 @@ def main(path):
                     surfacedf["{}_{}".format(obj,i)]["normal"] = getNormal(np.array(geometry.boundaries[0][i][0]))
                     surfacedf["{}_{}".format(obj,i)]["semantic"] = geometry.surfaces[i]["type"]
                     if "attributes" in geometry.surfaces[i]:
-                       surfacedf["{}_{}".format(obj,i)]["normal"] =  geometry.surfaces[i]["attributes"]["Direction"]
+                       surfacedf["{}_{}".format(obj,i)]["direction"] =  geometry.surfaces[i]["attributes"]["Direction"]
                        surfacedf["{}_{}".format(obj,i)]["slope"] = geometry.surfaces[i]["attributes"]["Slope"]
                     else:
                         pass
@@ -75,11 +75,11 @@ def main(path):
                     surfacedf["{}_{}".format(obj,i)]["parent"] = obj
                     try:
                         surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(geometry.boundaries[i][0]).wkt
-                        #surfacedf["{}_{}".format(obj,i)]["normal"] = getNormal(np.array(geometry.boundaries[i][0]))
+                        surfacedf["{}_{}".format(obj,i)]["normal"] = getNormal(np.array(geometry.boundaries[i][0]))
 
                     except TypeError:
                         surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(geometry.boundaries[i][0][0]).wkt
-                        #surfacedf["{}_{}".format(obj,i)]["normal"] = getNormal(np.array(geometry.boundaries[i][0][0]))
+                        surfacedf["{}_{}".format(obj,i)]["normal"] = getNormal(np.array(geometry.boundaries[i][0][0]))
 
     
     surfacedf = pd.DataFrame(surfacedf)
