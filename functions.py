@@ -24,3 +24,13 @@ def getNormal(poly):
         normalised = n/norm
 
     return list(normalised)
+
+def getTotalHeight(objct):
+    totalHeight = 0
+    if objct.get_vertices() == []:
+        totalHeight = "None"
+    else:
+        vertices = np.array(objct.get_vertices())
+        h_list = list(vertices[:,2])
+        totalHeight = max(h_list) - min(h_list)
+    return totalHeight

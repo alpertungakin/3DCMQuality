@@ -17,13 +17,13 @@ import rdfpandas as rpd
 import pandas as pd
 import cjio as cj
 from cjio import cityjson
-from functions import getNormal
+from functions import getNormal, getTotalHeight
     
 def main(path):
-    rootSpace = "http://example.org/#"
-    CityGML_URI = "http://www.theworldavatar.com/ontology/ontocitygml/OntoCityGML.owl#"
+    EXA = "http://example.org/#"
+    CGML_URI = "http://www.theworldavatar.com/ontology/ontocitygml/OntoCityGML.owl#"
     SF_URI = "http://www.opengis.net/ont/sf#"
-    Brep_URI = "https://github.com/OntoBREP/ontobrep/blob/master/owl/ontobrep.owl#"
+    BREP_URI = "https://github.com/OntoBREP/ontobrep/blob/master/owl/ontobrep.owl#"
     model = cityjson.load(path)
     modeldf = model.to_dataframe()
     
@@ -31,26 +31,30 @@ def main(path):
     geometryTypes = {}
     objectTypes = {}
     parents = {}
-    
+    totalHeights = {}
+
     for obj in cityObjIds:
         
         if len(model.get_cityobjects()[obj].parents) == 0:
             parents[obj] = "CityModel"
         else:
-            parents[obj] = model.get_cityobjects()[obj].parents       
+            parents[obj] = model.get_cityobjects()[obj].parents[0]       
         if model.get_cityobjects()[obj].type == "BuildingPart":
             geometryTypes[obj] = "lod" + model.get_cityobjects()[obj].geometry[0].lod + model.get_cityobjects()[obj].geometry[0].type
             objectTypes[obj] = model.get_cityobjects()[obj].type
+            totalHeights[obj] = getTotalHeight(model.get_cityobjects()[obj])
         elif model.get_cityobjects()[obj].type == "Building":
             geometryTypes[obj] = "None"
             objectTypes[obj] = model.get_cityobjects()[obj].type
+            totalHeights[obj] = getTotalHeight(model.get_cityobjects()[obj])
         else:
             geometryTypes[obj] = model.get_cityobjects()[obj].geometry[0].type
             objectTypes[obj] = model.get_cityobjects()[obj].type        
-    
+
     modeldf["objectTypes"] = objectTypes
     modeldf["geometryTypes"] = geometryTypes
     modeldf["parents"] = parents
+    modeldf["totalHeight"] = totalHeights
     
     surfacedf = {}
     
@@ -115,10 +119,10 @@ def main(path):
     
     modelGraph = Graph(bind_namespaces="rdflib")
     surfaceGraph = Graph(bind_namespaces="rdflib")
-    citygml = Namespace(CityGML_URI)
+    citygml = Namespace(CGML_URI)
+    brep = Namespace(BREP_URI)
     sf = Namespace(SF_URI)
-    ex = Namespace(rootSpace)
-    brep = Namespace(Brep_URI)
+    ex = Namespace(EXA)
     modelGraph.bind("citygml", citygml)
     modelGraph.bind("sf", sf)
     modelGraph.bind("ex", ex)
@@ -141,8 +145,13 @@ def main(path):
     modelGraph.add((ex.CityModel, citygml.transformationMatrix, Literal(list(transformationMatrix3x4.flatten()))))
     
     for m in modelTriples:
-        if m[1] == 'AbsoluteRidgeHeight' or m[1] == 'measuredHeight':
+        if m[1] == 'RelativeRidgeHeight' or m[1] == 'measuredHeight':
             modelGraph.add((ex.term(m[0]), citygml.measuredHeight, Literal(m[2])))
+        elif m[1] == 'totalHeight':
+            if m[2] == "None":
+                modelGraph.add((ex.term(m[0]), citygml.height, CSVW.null))
+            else:
+                modelGraph.add((ex.term(m[0]), citygml.height, Literal(m[2])))
         elif m[1] == 'parents':
             modelGraph.add((ex.term(m[0]), citygml.parent, ex.term(m[2][0])))
         elif m[1] == 'roofType':
