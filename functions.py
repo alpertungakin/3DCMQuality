@@ -34,3 +34,13 @@ def getTotalHeight(objct):
         h_list = list(vertices[:,2])
         totalHeight = max(h_list) - min(h_list)
     return totalHeight
+
+def flattenSubBounds(geometry):
+    bound_list = []
+    if len(geometry.boundaries) == 1:
+        for b in geometry.boundaries[0]:
+            bound_list = bound_list + b
+    else:
+        for b in geometry.boundaries:
+            bound_list = bound_list + b
+    return bound_list
