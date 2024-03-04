@@ -44,3 +44,36 @@ def flattenSubBounds(geometry):
         for b in geometry.boundaries:
             bound_list = bound_list + b
     return bound_list
+
+def closeRing(bound_list):
+    # ensure 103
+    if abs(bound_list[0][0]-bound_list[-1][0])>0.01 and abs(bound_list[0][1]-bound_list[-1][1])>0.01 and abs(bound_list[0][2]-bound_list[-1][2])>0.01:
+        bound_list.append(bound_list[0])
+    else:
+        pass
+    return bound_list
+
+def vertexCount(bound_list):
+    # check 101
+    return len(bound_list)
+
+def duplicatePoints(bound_list):
+    # check 102
+    temp = bound_list[:-1]
+    haveDups = False
+    for i in range(len(temp)-1):
+        if abs(temp[i][0]-temp[i+1][0])<0.01 and abs(temp[i][1]-temp[i+1][1])<0.01 and abs(temp[i][2]-temp[i+1][2])<0.01:
+            haveDups = True
+        else:
+            continue
+    return haveDups
+
+def isClosed(bound_list):
+    # check 103
+    closeness = True
+    if abs(bound_list[0][0]-bound_list[-1][0])>0.01 and abs(bound_list[0][1]-bound_list[-1][1])>0.01 and abs(bound_list[0][2]-bound_list[-1][2])>0.01:
+        closeness = False
+    return closeness
+
+    
+    
