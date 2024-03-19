@@ -6,6 +6,10 @@ Created on Mon Feb 19 12:29:22 2024
 """
 
 import numpy as np
+from shapely.geometry import Polygon, LineString, MultiPoint, LinearRing, polygon
+from skspatial.objects import Plane, Points, Vector, Triangle
+import earcut as ec
+#from shapely.ops import triangulate
 
 def getNormal(poly):
     #Newells method
@@ -45,7 +49,7 @@ def flattenSubBounds(geometry):
             bound_list = bound_list + b
     return bound_list
 
-def closeRing(bound_list):
+def closeRing_RL(bound_list):
     # ensure 103
     if abs(bound_list[0][0]-bound_list[-1][0])>0.01 and abs(bound_list[0][1]-bound_list[-1][1])>0.01 and abs(bound_list[0][2]-bound_list[-1][2])>0.01:
         bound_list.append(bound_list[0])
@@ -53,11 +57,11 @@ def closeRing(bound_list):
         pass
     return bound_list
 
-def vertexCount(bound_list):
+def vertexCount_RL(bound_list):
     # check 101
     return len(bound_list)
 
-def duplicatePoints(bound_list):
+def haveduplicatePoints_RL(bound_list):
     # check 102
     temp = bound_list[:-1]
     haveDups = False
@@ -68,12 +72,77 @@ def duplicatePoints(bound_list):
             continue
     return haveDups
 
-def isClosed(bound_list):
+def isClosed_RL(bound_list):
     # check 103
     closeness = True
     if abs(bound_list[0][0]-bound_list[-1][0])>0.01 and abs(bound_list[0][1]-bound_list[-1][1])>0.01 and abs(bound_list[0][2]-bound_list[-1][2])>0.01:
         closeness = False
     return closeness
 
+def makeHorizontal(bound_list):
+    # before haveNoSelfIntersection_RL
+    temp = []
+    if Polygon(bound_list).area == 0:
+        for v in bound_list:
+            v_tuple = (v[1], v[2])
+            temp.append(v_tuple)
+    else:
+        temp = bound_list
+    return temp
+
+def haveNoSelfIntersection_RL(bound_list):
+    # check 104
+    h = makeHorizontal(bound_list)
+    issimple = Polygon(h).is_simple
+    return issimple
+
+def isCollapsedtoLine_RL(bound_list):
+    # check 105
+    h = makeHorizontal(bound_list)
+    collapse = LineString(h).equals(LineString([h[0], h[-1]]))
+    return collapse
     
+def isCoplanar_PL(bound_list):
+    # check 203
+    h = makeHorizontal(bound_list)
+    planarity = Points(h).are_coplanar()
+    return planarity
+
+def isNormalDeviated_PL(bound_list):
+    # check 204
+    deviated = False
+    h = makeHorizontal(bound_list)
+    temp = ec.flatten([h])
+    triangles = ec.earcut(temp['vertices'], temp['holes'], temp['dimensions'])
+    normals = []
+    for i in range(0, len(triangles), 3):
+        normals.append(Triangle(h[triangles[i]], h[triangles[i+1]], h[triangles[i+2]]).normal())
     
+    del i
+    deviations = []
+    try:
+        for i in range(len(normals)):
+            deviations.append(normals[i].angle_between(normals[i+1]))
+    except:
+        IndexError
+    if max(deviations) > 0.1:
+        deviated = True
+    return deviated
+
+def isCcwise_PL(bound_list):
+    # check 208
+    isCcw = LinearRing(makeHorizontal(bound_list)).is_ccw
+    return isCcw
+
+# City Object based checks: .................
+
+
+
+
+
+
+
+
+
+
+
