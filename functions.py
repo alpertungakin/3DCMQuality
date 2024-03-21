@@ -7,6 +7,7 @@ Created on Mon Feb 19 12:29:22 2024
 
 import numpy as np
 from shapely.geometry import Polygon, LineString, MultiPoint, LinearRing, polygon
+import shapely as shp
 from skspatial.objects import Plane, Points, Vector, Triangle
 import earcut as ec
 #from shapely.ops import triangulate
@@ -49,6 +50,8 @@ def flattenSubBounds(geometry):
             bound_list = bound_list + b
     return bound_list
 
+# Ring Level checks:
+    
 def closeRing_RL(bound_list):
     # ensure 103
     if abs(bound_list[0][0]-bound_list[-1][0])>0.01 and abs(bound_list[0][1]-bound_list[-1][1])>0.01 and abs(bound_list[0][2]-bound_list[-1][2])>0.01:
@@ -61,7 +64,7 @@ def vertexCount_RL(bound_list):
     # check 101
     return len(bound_list)
 
-def haveduplicatePoints_RL(bound_list):
+def hasduplicatePoints_RL(bound_list):
     # check 102
     temp = bound_list[:-1]
     haveDups = False
@@ -80,7 +83,7 @@ def isClosed_RL(bound_list):
     return closeness
 
 def makeHorizontal(bound_list):
-    # before haveNoSelfIntersection_RL
+    # before hasNoSelfIntersection_RL
     temp = []
     if Polygon(bound_list).area == 0:
         for v in bound_list:
@@ -90,7 +93,7 @@ def makeHorizontal(bound_list):
         temp = bound_list
     return temp
 
-def haveNoSelfIntersection_RL(bound_list):
+def hasNoSelfIntersection_RL(bound_list):
     # check 104
     h = makeHorizontal(bound_list)
     issimple = Polygon(h).is_simple
@@ -101,6 +104,39 @@ def isCollapsedtoLine_RL(bound_list):
     h = makeHorizontal(bound_list)
     collapse = LineString(h).equals(LineString([h[0], h[-1]]))
     return collapse
+
+# Polygon Level Checks:
+def hasIntersectedRings_PL(bound_list):
+    # check 201
+    hasIntersectedRings = False
+    rings = shp.get_rings(Polygon(makeHorizontal(bound_list))).tolist()
+    if len(rings) > 1:
+        temp = rings
+        for i in range(len(rings)):
+            temp.remove(rings[i])
+            for j in range(len(temp)):
+                if rings[i].intersect(temp[j]):
+                    hasIntersectedRings = True
+                    break
+                else:
+                    continue
+    return hasIntersectedRings
+
+def hasDuplicatedRings_PL(bound_list):
+    # check 202
+    hasDuplicatedRings = False
+    rings = shp.get_rings(Polygon(makeHorizontal(bound_list))).tolist()
+    if len(rings) > 1:
+        temp = rings
+        for i in range(len(rings)):
+            temp.remove(rings[i])
+            for j in range(len(temp)):
+                if rings[i].equals_exact(temp[j], 0.01):
+                    hasDuplicatedRings = True
+                    break
+                else:
+                    continue
+    return hasDuplicatedRings     
     
 def isCoplanar_PL(bound_list):
     # check 203
@@ -129,12 +165,49 @@ def isNormalDeviated_PL(bound_list):
         deviated = True
     return deviated
 
+def hasInteriorDisconnected_PL(bound_list):
+    # check 205
+    hasInteriorDisconnected = False
+    exterior = shp.get_exterior_ring(Polygon(makeHorizontal(bound_list)))
+    interiors = list(Polygon(makeHorizontal(bound_list)).interiors)
+    for one in interiors:
+        if shp.contains(exterior, one):
+            if one.disjoint(exterior):
+                hasInteriorDisconnected = True
+    return hasInteriorDisconnected
+    
+def hasHoleOutside_PL(bound_list):
+    # check 206
+    hasHoleOutside = False
+    exterior = shp.get_exterior_ring(Polygon(makeHorizontal(bound_list)))
+    interiors = list(Polygon(makeHorizontal(bound_list)).interiors)
+    for one in interiors:
+        if shp.contains(exterior, one) == False:
+            hasHoleOutside = True
+    return hasHoleOutside
+    
+def hasInnerNestedRings_PL(bound_list):
+    # check 207
+    hasInnerNestedRings = False
+    interiors = list(Polygon(makeHorizontal(bound_list)).interiors)
+    if len(interiors) > 0:
+        temp = interiors
+        for i in range(len(interiors)):
+            temp.remove(interiors[i])
+            for j in range(len(temp)):
+                if shp.contains(interiors[i],temp[j]):
+                    hasInnerNestedRings = True
+                    break
+                else:
+                    continue
+    return hasInnerNestedRings
+    
 def isCcwise_PL(bound_list):
     # check 208
     isCcw = LinearRing(makeHorizontal(bound_list)).is_ccw
     return isCcw
 
-# City Object based checks: .................
+# Shell level checks: .................
 
 
 
