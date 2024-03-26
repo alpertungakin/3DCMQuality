@@ -10,6 +10,7 @@ from shapely.geometry import Polygon, LineString, MultiPoint, LinearRing, polygo
 import shapely as shp
 from skspatial.objects import Plane, Points, Vector, Triangle
 import earcut as ec
+import open3d as o3d
 #from shapely.ops import triangulate
 
 def getNormal(poly):
@@ -208,8 +209,73 @@ def isCcwise_PL(bound_list):
     return isCcw
 
 # Shell level checks: .................
+def triangulateFaces(bound_list):
+    h = makeHorizontal(bound_list)
+    temp = ec.flatten([h])
+    triangles = ec.earcut(temp['vertices'], temp['holes'], temp['dimensions'])
+    trianglesCluster = []
+    for i in range(0, len(triangles), 3):
+        trianglesCluster.append([triangles[i], triangles[i+1], triangles[i+2]])
+    return np.array(trianglesCluster)
 
+def getShellTriangles(cityObject):
+    vertices = cityObject.get_vertices()
+    boundaries = flattenSubBounds(cityObject.geometry[0])
+    triangles = []
+    for bound in boundaries:
+        temp = triangulateFaces(bound)
+        for t in temp:
+            triangles.append([vertices.index(bound[t[0]]), vertices.index(bound[t[1]]), vertices.index(bound[t[2]])])
+    return np.array(triangles)
 
+def create3AngleMeshOfShell(cityObject):
+   vertices = o3d.utility.Vector3dVector(np.array(cityObject.get_vertices()))
+   triangles = o3d.utility.Vector3iVector(getShellTriangles(cityObject))
+   mesh_np = o3d.geometry.TriangleMesh(vertices, triangles)
+   return mesh_np
+
+def tooFewPolygons_SL(cityObject):
+    # check 301
+    hasTooFew = False
+    mesh = create3AngleMeshOfShell(cityObject)
+    count = len(mesh.triangles)
+    if count < 4:
+        hasTooFew = True
+    return hasTooFew
+
+def isWatertight_SL(cityObject):
+    # check 302
+    mesh = create3AngleMeshOfShell(cityObject)
+    return mesh.is_watertight()
+
+def isVertexManifold_SL(cityObject):
+    # check 303
+    mesh = create3AngleMeshOfShell(cityObject)
+    return mesh.is_vertex_manifold()
+
+def isEdgeManifold_SL(cityObject):
+    # check 304
+    mesh = create3AngleMeshOfShell(cityObject)
+    return mesh.is_edge_manifold()  
+
+def areAll3AnglesConnected_SL(cityObject):
+    # check 305
+    mesh = create3AngleMeshOfShell(cityObject)
+    clusters = len(mesh.cluster_connected_triangles()[1])
+    areConnected = True
+    if clusters > 1:
+        areConnected = False
+    return areConnected
+
+def hasSelfIntersections_SL(cityObject):
+    # check 306
+    mesh = create3AngleMeshOfShell(cityObject)
+    return mesh.is_self_intersecting()
+    
+def isCorrectOriented(cityObject):
+    # check 307-308
+    mesh = create3AngleMeshOfShell(cityObject)
+    return mesh.is_orientable()
 
 
 
