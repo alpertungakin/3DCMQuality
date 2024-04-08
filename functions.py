@@ -272,13 +272,18 @@ def hasSelfIntersections_SL(cityObject):
     mesh = create3AngleMeshOfShell(cityObject)
     return mesh.is_self_intersecting()
     
-def isCorrectOriented(cityObject):
+def isCorrectOriented_SL(cityObject):
     # check 307-308
     mesh = create3AngleMeshOfShell(cityObject)
     return mesh.is_orientable()
 
-
-
+# Semantic checks:
+def roofSurfaceNormals_SE(surfaceTriples, surfacedf):
+    pass
+    
+    
+    
+    
 
 
 
