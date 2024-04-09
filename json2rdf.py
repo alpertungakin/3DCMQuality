@@ -61,33 +61,38 @@ def main(path):
     for obj in cityObjIds:
         if model.get_cityobjects()[obj].type == "BuildingPart":
             for geometry in model.get_cityobjects()[obj].geometry:
-                boundaryList = flattenSubBounds(geometry)
-                for i in range(len(boundaryList)):
-                    surfacedf["{}_{}".format(obj,i)] = {}
-                    surfacedf["{}_{}".format(obj,i)]["parent"] = obj
-                    curr_normal = getNormal(np.array(boundaryList[i]))
-                    surfacedf["{}_{}".format(obj,i)]["normalX"] = curr_normal[0]
-                    surfacedf["{}_{}".format(obj,i)]["normalY"] = curr_normal[1]
-                    surfacedf["{}_{}".format(obj,i)]["normalZ"] = curr_normal[2]
-                    surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(boundaryList[i]).wkt
-                    surfacedf["{}_{}".format(obj,i)]["semantic"] = geometry.surfaces[i]["type"]
-                    if "attributes" in geometry.surfaces[i]:
-                        surfacedf["{}_{}".format(obj,i)]["direction"] =  geometry.surfaces[i]["attributes"]["Direction"]
-                        surfacedf["{}_{}".format(obj,i)]["slope"] = geometry.surfaces[i]["attributes"]["Slope"]
-                    
-                    else:
-                        pass
+                if len(geometry.surfaces) != 0:
+                    boundaryList = flattenSubBounds(geometry)
+                    for i in range(len(boundaryList)):
+                        surfacedf["{}_{}".format(obj,i)] = {}
+                        surfacedf["{}_{}".format(obj,i)]["parent"] = obj
+                        curr_normal = getNormal(np.array(boundaryList[i]))
+                        surfacedf["{}_{}".format(obj,i)]["normalX"] = curr_normal[0]
+                        surfacedf["{}_{}".format(obj,i)]["normalY"] = curr_normal[1]
+                        surfacedf["{}_{}".format(obj,i)]["normalZ"] = curr_normal[2]
+                        surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(boundaryList[i]).wkt
+                        surfacedf["{}_{}".format(obj,i)]["semantic"] = geometry.surfaces[i]["type"]
+                        if "attributes" in geometry.surfaces[i]:
+                            surfacedf["{}_{}".format(obj,i)]["direction"] =  geometry.surfaces[i]["attributes"]["Direction"]
+                            surfacedf["{}_{}".format(obj,i)]["slope"] = geometry.surfaces[i]["attributes"]["Slope"]
+                        
+                        else:
+                            pass
+                else:
+                    pass
         elif model.get_cityobjects()[obj].type != "Building" or model.get_cityobjects()[obj].type != "BuildingPart":
             for geometry in model.get_cityobjects()[obj].geometry:
-                boundaryList = flattenSubBounds(geometry)
-                for i in range(len(geometry.boundaries)):
-                    surfacedf["{}_{}".format(obj,i)] = {}
-                    surfacedf["{}_{}".format(obj,i)]["parent"] = obj
-                    try:
-                        surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(boundaryList[i]).wkt                
-                    except TypeError:
-                        surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(boundaryList[i]).wkt
-
+                if len(geometry.surfaces) != 0:
+                    boundaryList = flattenSubBounds(geometry)
+                    for i in range(len(geometry.boundaries)):
+                        surfacedf["{}_{}".format(obj,i)] = {}
+                        surfacedf["{}_{}".format(obj,i)]["parent"] = obj
+                        try:
+                            surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(boundaryList[i]).wkt                
+                        except TypeError:
+                            surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(boundaryList[i]).wkt
+                else:
+                    pass
     
     surfacedf = pd.DataFrame(surfacedf)
     surfacedf = surfacedf.transpose()

@@ -63,7 +63,7 @@ def closeRing_RL(bound_list):
 
 def vertexCount_RL(bound_list):
     # check 101
-    return len(bound_list)
+    return len(bound_list) < 3
 
 def hasduplicatePoints_RL(bound_list):
     # check 102
@@ -278,8 +278,20 @@ def isCorrectOriented_SL(cityObject):
     return mesh.is_orientable()
 
 # Semantic checks:
-def roofSurfaceNormals_SE(surfaceTriples, surfacedf):
-    pass
+def attributeHeightEqualsGeometry(modelTriples, ID):
+    toCheck = []
+    for t in modelTriples:
+        if t[0] == ID:
+            toCheck.append([t[1],t[2]])
+    measured = 0
+    attribute = 0
+    for c in toCheck:
+        if c[0] == 'RelativeRidgeHeight' or  c[0] == 'measuredHeight':
+            measured = c[1]
+        elif c[0] == 'totalHeight':
+            attribute = c[1]
+    return abs(measured - attribute) < 0.01
+        
     
     
     
