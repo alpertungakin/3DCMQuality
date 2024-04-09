@@ -155,7 +155,7 @@ def main(path):
             else:
                 modelGraph.add((ex.term(m[0]), citygml.height, Literal(m[2])))
         elif m[1] == 'parents':
-            modelGraph.add((ex.term(m[0]), citygml.parent, ex.term(m[2][0])))
+            modelGraph.add((ex.term(m[0]), citygml.parent, ex.term(m[2])))
         elif m[1] == 'roofType':
             modelGraph.add((ex.term(m[0]), citygml.roofType, Literal(m[2])))
         elif m[1] == "geometryTypes":
@@ -177,6 +177,7 @@ def main(path):
         if s[1] == "parent":
             surfaceGraph.add((ex.term(s[0]), citygml.parent, ex.term(s[2])))
         elif s[1] == "geometry":
+            surfaceGraph.add((ex.term(s[0]), RDF.type, sf.Polygon))
             surfaceGraph.add((ex.term(s[0]), GEO.asWKT, Literal(s[2], datatype = GEO.wktLiteral)))
         elif s[1] == "semantic":
             if s[2] == 'None':
@@ -189,7 +190,7 @@ def main(path):
             surfaceGraph.add((ex.term(s[0]), brep.directionNormalY, Literal(s[2], datatype = XSD.double)))
         elif s[1] == "normalZ":
             surfaceGraph.add((ex.term(s[0]), brep.directionNormalZ, Literal(s[2], datatype = XSD.double)))
-
+            
     
     resultGraph = modelGraph + surfaceGraph
     return resultGraph
