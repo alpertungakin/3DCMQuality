@@ -154,8 +154,6 @@ def isNormalDeviated_PL(bound_list):
     normals = []
     for i in range(0, len(triangles), 3):
         normals.append(Triangle(h[triangles[i]], h[triangles[i+1]], h[triangles[i+2]]).normal())
-    
-    del i
     deviations = []
     try:
         for i in range(len(normals)):
@@ -292,8 +290,89 @@ def attributeHeightEqualsGeometry(modelTriples, ID):
             attribute = c[1]
     return abs(measured - attribute) < 0.01
         
-    
-    
+def storyHeightsEqualGeometry(modelTriples, ID):
+    pass
+
+def groundSurfaceNormals(surfacedf, ID):
+    grounds = surfacedf[surfacedf["semantic"] == 'GroundSurface']
+    thesurface = grounds.loc[ID]
+    return thesurface["normalZ"] < 0
+
+def roofSurfaceNormals(surfacedf, ID):
+    roofs = surfacedf[surfacedf["semantic"] == 'RoofSurface']
+    thesurface = roofs.loc[ID]
+    return thesurface["normalZ"] > 0
+
+def wallSurfaceNormals(surfacedf, ID):
+    walls = surfacedf[surfacedf["semantic"] == 'WallSurface']
+    thesurface = walls.loc[ID]
+    return abs(thesurface["normalZ"]) < 0.02 #tan(1)
+
+def outerFloorSurfaceNormals(surfacedf, ID):
+    outerFloors = surfacedf[surfacedf["semantic"] == 'OuterFloorSurface']
+    thesurface = outerFloors.loc[ID]
+    return thesurface["normalZ"] > 0
+
+def outerCeilingSurfaceNormals(surfacedf, ID):
+    outerCeilings = surfacedf[surfacedf["semantic"] == 'OuterFloorSurface']
+    thesurface = outerCeilings.loc[ID]
+    return thesurface["normalZ"] < 0
+
+def groundSurfacePolygonNormals(surfacedf, ID):
+    siblings = surfacedf[surfacedf["parent"] == ID]
+    groundSiblings = siblings[siblings["semantic"] == "GroundSurface"]
+    directions = []
+    for s in groundSiblings.iterrows():
+        directions.append([s[1]["normalX"], s[1]["normalY"], s[1]["normalZ"]])
+    angles = []
+    check = 0
+    if len(siblings) == 0:
+        check = None
+    if len(directions) == 1:
+        check = Vector([0,0,-1]).angle_between(Vector(directions[0]))
+    else:
+        try:
+            for i in range(len(directions)):
+                angles.append(Vector(directions[i]).angle_between(Vector(directions[i+1])))
+            check = abs(max(angles) - min(angles))
+        except:
+            IndexError
+    return abs(check) < 5
+
+def roofSurfacePolygonNormals(surfacedf, ID):
+    siblings = surfacedf[surfacedf["parent"] == ID]
+    roofSiblings = siblings[siblings["semantic"] == "RoofSurface"]
+    directions = []
+    for s in roofSiblings.iterrows():
+        directions.append([s[1]["normalX"], s[1]["normalY"], s[1]["normalZ"]])
+    angles = []
+    check = 0
+    if len(siblings) == 0:
+        check = None
+    if len(directions) == 1:
+        check = Vector([0,0,1]).angle_between(Vector(directions[0]))
+    else:
+        try:
+            for i in range(len(directions)):
+                angles.append(Vector(directions[i]).angle_between(Vector(directions[i+1])))
+            check = abs(max(angles) - min(angles))
+        except:
+            IndexError
+    return abs(check) < 85  
+
+def wallSurfacePolygonNormals(surfacedf, ID):
+    siblings = surfacedf[surfacedf["parent"] == ID]
+    wallSiblings = siblings[siblings["semantic"] == "WallSurface"]
+    directions = []
+    for s in wallSiblings.iterrows():
+        directions.append([s[1]["normalX"], s[1]["normalY"], s[1]["normalZ"]])
+    angles = []
+    try:
+        for i in range(len(directions)):
+            angles.append(Vector(directions[i]).angle_between(Vector(directions[i+1])))
+    except:
+        IndexError        
+    return abs(max(angles) - min(angles)) < 5  
     
     
 
