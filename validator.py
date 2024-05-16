@@ -12,10 +12,10 @@ from rdflib.namespace import NamespaceManager, CSVW, DC, DCAT, DCTERMS, DOAP, FO
                            VOID, XMLNS, XSD
                            
 data_graph = Graph()
-data_graph.parse("denhaag_rdf.ttl")
+data_graph.parse("denhaag_rdf.ttl", format='turtle')
 
 shacl_graph = Graph()
-shacl_graph.parse("shacl4cg_v2.ttl")
+shacl_graph.parse("shacl4cg_v2.ttl", format='turtle')
 r = validate(data_graph,
       shacl_graph=shacl_graph,
       ont_graph=None,

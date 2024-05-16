@@ -24,7 +24,7 @@ def main(path):
     CGML_URI = "http://www.theworldavatar.com/ontology/ontocitygml/OntoCityGML.owl#"
     SF_URI = "http://www.opengis.net/ont/sf#"
     BREP_URI = "https://github.com/OntoBREP/ontobrep/blob/master/owl/ontobrep.owl#"
-    VALID_URI = "https://github.com/alpertungakin/3DCMQuality/blob/main/untitled-ontology-32.ttl#"
+    VALID_URI = "http://www.semanticweb.org/alper/ontologies/2024/3/8/untitled-ontology-32#"
 
     model = cityjson.load(path)
     modeldf = model.to_dataframe()
@@ -299,5 +299,5 @@ def main(path):
     return resultGraph
 
 if __name__ == "__main__":
-    g = main("vienna.city.json")
-    g.serialize("vienna_rdf.ttl", format='ttl')
+    g = main("DenHaag_01.city.json")
+    g.serialize("denhaag_rdf.ttl", format='ttl')
