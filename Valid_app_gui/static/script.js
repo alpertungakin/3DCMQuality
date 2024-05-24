@@ -1,54 +1,94 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const optionSelect = document.getElementById('optionSelect');
-    const selectedContent = document.getElementById('selectedContent');
+// script.js
+
+document.addEventListener("DOMContentLoaded", function() {
     const fileInput = document.getElementById('fileInput');
-    const fileContent = document.getElementById('fileContent');
     const uploadBtn = document.getElementById('uploadBtn');
     const processBtn = document.getElementById('processBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const optionSelect = document.getElementById('optionSelect');
+    const modelViewer = document.getElementById('modelViewer');
     const responseText = document.getElementById('responseText');
 
-    optionSelect.addEventListener('change', () => {
-        fetch('/get_content', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: `selected_option=${optionSelect.value}`
-        })
-        .then(response => response.text())
-        .then(data => {
-            selectedContent.value = data;
-        });
+    let cityjson = null;
+
+    uploadBtn.addEventListener('click', function() {
+        const file = fileInput.files[0];
+        if (file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                cityjson = data;
+                responseText.textContent = "File uploaded successfully.";
+                responseText.style.color = "green";
+            })
+            .catch(error => {
+                responseText.textContent = "Error uploading file.";
+                responseText.style.color = "red";
+            });
+        } else {
+            responseText.textContent = "Please select a file to upload.";
+            responseText.style.color = "red";
+        }
     });
 
-    uploadBtn.addEventListener('click', () => {
+    processBtn.addEventListener('click', function() {
+        const selectedOption = optionSelect.value;
+
+        if (!cityjson) {
+            responseText.textContent = "Please upload a CityJSON file.";
+            responseText.style.color = "red";
+            return;
+        }
+
+        if (!selectedOption) {
+            responseText.textContent = "Please select an ontology.";
+            responseText.style.color = "red";
+            return;
+        }
+
+        responseText.textContent = `Processing data with ${selectedOption} ontology...`;
+        responseText.style.color = "blue";
+
         const formData = new FormData();
-        formData.append('file', fileInput.files[0]);
-
-        fetch('/upload', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.text())
-        .then(data => {
-            fileContent.value = data;
-        });
-    });
-
-    processBtn.addEventListener('click', () => {
-        const text1 = fileContent.value;
-        const text2 = selectedContent.value;
+        formData.append('text1', cityjson);
+        formData.append('text2', selectedOption);
 
         fetch('/process_texts', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: `text1=${encodeURIComponent(text1)}&text2=${encodeURIComponent(text2)}`
+            body: formData
         })
         .then(response => response.json())
         .then(data => {
             responseText.textContent = data.response;
+            responseText.style.color = "green";
+        })
+        .catch(error => {
+            responseText.textContent = "Error processing data.";
+            responseText.style.color = "red";
         });
+    });
+
+    downloadBtn.addEventListener('click', function() {
+        if (responseText.textContent.includes("Processed text:")) {
+            const reportContent = responseText.textContent;
+
+            const blob = new Blob([reportContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'report.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } else {
+            responseText.textContent = "Please process the data before downloading the report.";
+            responseText.style.color = "red";
+        }
     });
 });
