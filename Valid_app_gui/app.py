@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify
+
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import os
@@ -41,4 +42,4 @@ def process_texts():
     return jsonify({'response': combined_text})
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)

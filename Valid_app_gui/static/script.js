@@ -8,6 +8,19 @@ document.addEventListener("DOMContentLoaded", function() {
     const optionSelect = document.getElementById('optionSelect');
     const modelViewer = document.getElementById('modelViewer');
     const responseText = document.getElementById('responseText');
+    const responseLoader = document.getElementById('responseLoader');
+
+    function showDownload(){
+        downloadBtn.style.visibility = "visible";
+    }
+
+    function showLoader(){
+        responseLoader.style.visibility = "visible";
+    }
+
+    function hideLoader(){
+        responseLoader.style.visibility = "hidden";
+    }
 
     let cityjson = null;
 
@@ -50,6 +63,7 @@ document.addEventListener("DOMContentLoaded", function() {
         formData.append('cityjson', cityjson);
         formData.append('ontology', selectedOption);
 
+        showLoader();
         fetch('/process_texts', {
             method: 'POST',
             body: formData
@@ -58,6 +72,8 @@ document.addEventListener("DOMContentLoaded", function() {
         .then(data => {
             responseText.textContent = data.response;
             console.log(responseText.textContent);
+            hideLoader();
+            showDownload();
             responseText.style.color = "green";
         })
         .catch(error => {
