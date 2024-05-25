@@ -46,18 +46,9 @@ document.addEventListener("DOMContentLoaded", function() {
             return;
         }
 
-        if (!selectedOption) {
-            responseText.textContent = "Please select an ontology.";
-            responseText.style.color = "red";
-            return;
-        }
-
-        responseText.textContent = `Processing data with ${selectedOption} ontology...`;
-        responseText.style.color = "blue";
-
         const formData = new FormData();
-        formData.append('text1', cityjson);
-        formData.append('text2', selectedOption);
+        formData.append('cityjson', cityjson);
+        formData.append('ontology', selectedOption);
 
         fetch('/process_texts', {
             method: 'POST',
@@ -66,6 +57,7 @@ document.addEventListener("DOMContentLoaded", function() {
         .then(response => response.json())
         .then(data => {
             responseText.textContent = data.response;
+            console.log(responseText.textContent);
             responseText.style.color = "green";
         })
         .catch(error => {
