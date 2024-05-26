@@ -61,7 +61,7 @@ def main(path):
     surfacedf = {}
     
     for obj in cityObjIds:
-        if model.get_cityobjects()[obj].type == "BuildingPart":
+        if model.get_cityobjects()[obj].type == "BuildingPart" or model.get_cityobjects()[obj].type == "Building":
             for geometry in model.get_cityobjects()[obj].geometry:
                 if len(geometry.surfaces) != 0:
                     boundaryList = func.flattenSubBounds(geometry)
@@ -100,9 +100,8 @@ def main(path):
                         
                         # else:
                         #     pass
-                else:
-                    pass
-        elif model.get_cityobjects()[obj].type != "Building" or model.get_cityobjects()[obj].type != "BuildingPart":
+
+        else:
             for geometry in model.get_cityobjects()[obj].geometry:
                 boundaryList = func.flattenSubBounds(geometry)
                 for i in range(len(geometry.boundaries)):
@@ -111,23 +110,23 @@ def main(path):
                     try:
                         surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(boundaryList[i]).wkt                
                     except TypeError:
-                        surfacedf["{}_{}".format(obj,i)]["geometry"] = Polygon(boundaryList[i]).wkt              
-                        surfacedf["{}_{}".format(obj,i)]["vertexCount_RL"] = func.vertexCount_RL(boundaryList[i])
-                        surfacedf["{}_{}".format(obj,i)]["hasduplicatePoints_RL"] = func.hasduplicatePoints_RL(boundaryList[i])
-                        surfacedf["{}_{}".format(obj,i)]["isClosed_RL"] = func.isClosed_RL(boundaryList[i])
-                        surfacedf["{}_{}".format(obj,i)]["hasNoSelfIntersection_RL"] = func.hasNoSelfIntersection_RL(boundaryList[i])
-                        surfacedf["{}_{}".format(obj,i)]["isCollapsedtoLine_RL"] = func.isCollapsedtoLine_RL(boundaryList[i])
-                        surfacedf["{}_{}".format(obj,i)]["hasIntersectedRings_PL"] = func.hasIntersectedRings_PL(boundaryList[i])
-                        surfacedf["{}_{}".format(obj,i)]["hasDuplicatedRings_PL"] = func.hasDuplicatedRings_PL(boundaryList[i])
-                        surfacedf["{}_{}".format(obj,i)]["isCoplanar_PL"] = func.isCoplanar_PL(boundaryList[i])
-                        try:
-                            surfacedf["{}_{}".format(obj,i)]["isNormalDeviated_PL"] = func.isNormalDeviated_PL(boundaryList[i])
-                        except ValueError:
-                            surfacedf["{}_{}".format(obj,i)]["isNormalDeviated_PL"] = False
-                        surfacedf["{}_{}".format(obj,i)]["hasInteriorDisconnected_PL"] = func.hasInteriorDisconnected_PL(boundaryList[i])
-                        surfacedf["{}_{}".format(obj,i)]["hasHoleOutside_PL"] = func.hasHoleOutside_PL(boundaryList[i])
-                        surfacedf["{}_{}".format(obj,i)]["hasInnerNestedRings_PL"] = func.hasInnerNestedRings_PL(boundaryList[i])
-                        surfacedf["{}_{}".format(obj,i)]["isCcwise_PL"] = func.isCcwise_PL(boundaryList[i])
+                        continue              
+                    surfacedf["{}_{}".format(obj,i)]["vertexCount_RL"] = func.vertexCount_RL(boundaryList[i])
+                    surfacedf["{}_{}".format(obj,i)]["hasduplicatePoints_RL"] = func.hasduplicatePoints_RL(boundaryList[i])
+                    surfacedf["{}_{}".format(obj,i)]["isClosed_RL"] = func.isClosed_RL(boundaryList[i])
+                    surfacedf["{}_{}".format(obj,i)]["hasNoSelfIntersection_RL"] = func.hasNoSelfIntersection_RL(boundaryList[i])
+                    surfacedf["{}_{}".format(obj,i)]["isCollapsedtoLine_RL"] = func.isCollapsedtoLine_RL(boundaryList[i])
+                    surfacedf["{}_{}".format(obj,i)]["hasIntersectedRings_PL"] = func.hasIntersectedRings_PL(boundaryList[i])
+                    surfacedf["{}_{}".format(obj,i)]["hasDuplicatedRings_PL"] = func.hasDuplicatedRings_PL(boundaryList[i])
+                    surfacedf["{}_{}".format(obj,i)]["isCoplanar_PL"] = func.isCoplanar_PL(boundaryList[i])
+                    try:
+                        surfacedf["{}_{}".format(obj,i)]["isNormalDeviated_PL"] = func.isNormalDeviated_PL(boundaryList[i])
+                    except ValueError:
+                        surfacedf["{}_{}".format(obj,i)]["isNormalDeviated_PL"] = False
+                    surfacedf["{}_{}".format(obj,i)]["hasInteriorDisconnected_PL"] = func.hasInteriorDisconnected_PL(boundaryList[i])
+                    surfacedf["{}_{}".format(obj,i)]["hasHoleOutside_PL"] = func.hasHoleOutside_PL(boundaryList[i])
+                    surfacedf["{}_{}".format(obj,i)]["hasInnerNestedRings_PL"] = func.hasInnerNestedRings_PL(boundaryList[i])
+                    surfacedf["{}_{}".format(obj,i)]["isCcwise_PL"] = func.isCcwise_PL(boundaryList[i])
 
     surfacedf = pd.DataFrame(surfacedf)
     surfacedf = surfacedf.transpose()
@@ -296,8 +295,8 @@ def main(path):
         
        
     resultGraph = modelGraph + surfaceGraph
-    return resultGraph
+    return resultGraph, surfaceTriples
 
 if __name__ == "__main__":
-    g = main("DenHaag_01.city.json")
-    g.serialize("denhaag_rdf.ttl", format='ttl')
+    g, r = main("Vienna.city.json")
+    g.serialize("vienna_rdf.ttl", format='ttl')
