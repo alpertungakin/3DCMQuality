@@ -83,7 +83,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     downloadBtn.addEventListener('click', function() {
-        if (responseText.textContent.includes("Processed text:")) {
+        if (responseText.textContent.includes("Validation Report")) {
             const reportContent = responseText.textContent;
 
             const blob = new Blob([reportContent], { type: 'text/plain' });

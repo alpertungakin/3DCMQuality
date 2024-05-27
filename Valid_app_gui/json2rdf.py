@@ -295,8 +295,8 @@ def main(path):
         
        
     resultGraph = modelGraph + surfaceGraph
-    return resultGraph, surfaceTriples
+    return resultGraph
 
-if __name__ == "__main__":
-    g, r = main("Vienna.city.json")
-    g.serialize("vienna_rdf.ttl", format='ttl')
+#if __name__ == "__main__":
+#    g = main("Vienna.city.json")
+#    g.serialize("vienna_rdf.ttl", format='ttl')
