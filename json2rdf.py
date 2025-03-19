@@ -18,6 +18,8 @@ import pandas as pd
 import cjio as cj
 from cjio import cityjson
 import functions as func
+from cityjson_bracket_cleaner import clean_json_file
+from datetime import datetime
     
 def main(path):
     EXA = "http://example.org/#"
@@ -26,10 +28,14 @@ def main(path):
     BREP_URI = "https://github.com/OntoBREP/ontobrep/blob/master/owl/ontobrep.owl#"
     VALID_URI = "http://www.semanticweb.org/alper/ontologies/2024/3/8/untitled-ontology-32#"
 
-    model = cityjson.load(path)
+    path_ = clean_json_file(path, "cleaned_{}.json".format(str(datetime.now().timestamp())))
+    model = cityjson.load(path_)
     modeldf = model.to_dataframe()
     
     cityObjIds = list(model.cityobjects.keys())
+    # cityObjIds = [item.strip('{}') for item in cityObjIds_]
+    # for id in cityObjIds:
+    #     print(id)
     geometryTypes = {}
     objectTypes = {}
     parents = {}
@@ -46,7 +52,10 @@ def main(path):
             objectTypes[obj] = model.get_cityobjects()[obj].type
             totalHeights[obj] = func.getTotalHeight(model.get_cityobjects()[obj])
         elif model.get_cityobjects()[obj].type == "Building":
-            geometryTypes[obj] = "None"
+            if model.get_cityobjects()[obj].attributes != {} :
+                geometryTypes[obj] = "lod" + model.get_cityobjects()[obj].geometry[0].lod + model.get_cityobjects()[obj].geometry[0].type
+            else:
+                geometryTypes[obj] = "None"
             objectTypes[obj] = model.get_cityobjects()[obj].type
             totalHeights[obj] = func.getTotalHeight(model.get_cityobjects()[obj])
         else:
@@ -205,7 +214,8 @@ def main(path):
                 modelGraph.add((ex.term(m[0]), citygml.GeometryType, CSVW.null))
             else:
                 modelGraph.add((ex.term(m[0]), citygml.GeometryType, citygml.term(m[2])))
-            if 'Solid' in m[2]:
+            if 'Solid' or 'MultiSurface' in m[2]:
+                modelGraph.add((ex.term(m[0]), RDF.type, citygml.SolidType))
                 modelGraph.add((ex.term(m[0]), citygml.SolidType, citygml.term(m[2])))
         elif m[1] == "objectTypes":
             if m[2] == 'None':
@@ -291,12 +301,9 @@ def main(path):
             surfaceGraph.add((ex.term(s[0]), valid.isCcwise, Literal(s[2], datatype = XSD.boolean)))
     
 
-    
-        
-       
     resultGraph = modelGraph + surfaceGraph
     return resultGraph, surfaceTriples
 
-# if __name__ == "__main__":
-#     g, r = main("DenHaag_01.city.json")
-#     g.serialize("denhaag_rdf.ttl", format='ttl')
+if __name__ == "__main__":
+    g, r = main("Rotterdam.city.json")
+    g.serialize("rotterdam_rdf.ttl", format='ttl')

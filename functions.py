@@ -11,6 +11,8 @@ import shapely as shp
 from skspatial.objects import Plane, Points, Vector, Triangle
 import earcut as ec
 import open3d as o3d
+from earcut_115 import earcut as ec115
+
 #from shapely.ops import triangulate
 
 def getNormal(poly):
@@ -226,9 +228,24 @@ def getShellTriangles(cityObject):
             triangles.append([vertices.index(bound[t[0]]), vertices.index(bound[t[1]]), vertices.index(bound[t[2]])])
     return np.array(triangles)
 
+def getShellTriangles_v2(cityObject):
+    vertices = cityObject.get_vertices()
+    boundaries = flattenSubBounds(cityObject.geometry[0])
+    triangles = []
+    for bound in boundaries:
+        t = np.array(bound)
+        shapelyPoly = Polygon(t)
+        exterior_coords = list(shapelyPoly.exterior.coords)
+        flat_coords = [coord for point in exterior_coords for coord in point]
+        temp = ec115.earcut(flat_coords, None, 3)  # Triangulation
+        temp_ = np.array(temp).reshape(-1, 3)
+        for t in temp_:
+            triangles.append([vertices.index(bound[t[0]]), vertices.index(bound[t[1]]), vertices.index(bound[t[2]])])
+    return np.array(triangles)
+
 def create3AngleMeshOfShell(cityObject):
    vertices = o3d.utility.Vector3dVector(np.array(cityObject.get_vertices()))
-   triangles = o3d.utility.Vector3iVector(getShellTriangles(cityObject))
+   triangles = o3d.utility.Vector3iVector(getShellTriangles_v2(cityObject))
    mesh_np = o3d.geometry.TriangleMesh(vertices, triangles)
    return mesh_np
 
