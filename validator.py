@@ -10,16 +10,18 @@ from rdflib import Graph, Literal, RDF, URIRef
 from rdflib.namespace import NamespaceManager, CSVW, DC, DCAT, DCTERMS, DOAP, FOAF, GEO, ODRL2, ORG, OWL, \
                            PROF, PROV, RDF, RDFS, SDO, SH, SKOS, SOSA, SSN, TIME, \
                            VOID, XMLNS, XSD
-                           
+import time
+
+start = time.time()
 data_graph = Graph()
-data_graph.parse("rotterdam_rdf.ttl", format='turtle')
+data_graph.parse("vienna_rdf.ttl", format='turtle')
 
 shacl_graph = Graph()
 shacl_graph.parse("shacl4cg_v2.ttl", format='turtle')
 r = validate(data_graph,
       shacl_graph=shacl_graph,
       ont_graph=None,
-      inference='rdfs',
+      inference='none',
       abort_on_first=False,
       allow_infos=False,
       allow_warnings=False,
@@ -30,6 +32,8 @@ r = validate(data_graph,
 
 validity, results_graph, results_text = r
 
-val = open("validation_results.txt", "w")
+val = open("vienna_results.txt", "w")
 val.write(results_text)
 val.close()
+end= time.time()
+print("Validation took: ", end-start, " seconds")

@@ -53,7 +53,10 @@ def main(path):
             totalHeights[obj] = func.getTotalHeight(model.get_cityobjects()[obj])
         elif model.get_cityobjects()[obj].type == "Building":
             if model.get_cityobjects()[obj].attributes != {} :
-                geometryTypes[obj] = "lod" + model.get_cityobjects()[obj].geometry[0].lod + model.get_cityobjects()[obj].geometry[0].type
+                try:
+                    geometryTypes[obj] = "lod" + model.get_cityobjects()[obj].geometry[0].lod + model.get_cityobjects()[obj].geometry[0].type
+                except IndexError:
+                    pass
             else:
                 geometryTypes[obj] = "None"
             objectTypes[obj] = model.get_cityobjects()[obj].type
@@ -214,9 +217,9 @@ def main(path):
                 modelGraph.add((ex.term(m[0]), citygml.GeometryType, CSVW.null))
             else:
                 modelGraph.add((ex.term(m[0]), citygml.GeometryType, citygml.term(m[2])))
-            if 'Solid' or 'MultiSurface' in m[2]:
-                modelGraph.add((ex.term(m[0]), RDF.type, citygml.SolidType))
-                modelGraph.add((ex.term(m[0]), citygml.SolidType, citygml.term(m[2])))
+                if 'Solid' or 'MultiSurface' in m[2]:
+                    modelGraph.add((ex.term(m[0]), RDF.type, citygml.SolidType))
+                    # modelGraph.add((ex.term(m[0]), citygml.SolidType, citygml.term(m[2])))
         elif m[1] == "objectTypes":
             if m[2] == 'None':
                 modelGraph.add((ex.term(m[0]), RDF.type, CSVW.null))
@@ -305,5 +308,5 @@ def main(path):
     return resultGraph, surfaceTriples
 
 if __name__ == "__main__":
-    g, r = main("Rotterdam.city.json")
-    g.serialize("rotterdam_rdf.ttl", format='ttl')
+    g, r = main("Vienna.city.json")
+    g.serialize("vienna_rdf.ttl", format='ttl')
