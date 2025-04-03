@@ -14,7 +14,7 @@ import time
 
 start = time.time()
 data_graph = Graph()
-data_graph.parse("vienna_rdf.ttl", format='turtle')
+data_graph.parse("rotterdam_rdf.ttl", format='turtle')
 
 shacl_graph = Graph()
 shacl_graph.parse("shacl4cg_v2.ttl", format='turtle')
@@ -32,7 +32,7 @@ r = validate(data_graph,
 
 validity, results_graph, results_text = r
 
-val = open("vienna_results.txt", "w")
+val = open("rotterdam_results.txt", "w")
 val.write(results_text)
 val.close()
 end= time.time()

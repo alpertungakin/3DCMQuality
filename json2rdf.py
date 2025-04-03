@@ -308,5 +308,5 @@ def main(path):
     return resultGraph, surfaceTriples
 
 if __name__ == "__main__":
-    g, r = main("Vienna.city.json")
-    g.serialize("vienna_rdf.ttl", format='ttl')
+    g, r = main("Rotterdam.city.json")
+    g.serialize("rotterdam_rdf.ttl", format='ttl')

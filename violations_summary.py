@@ -42,7 +42,7 @@ def print_summary(violations, total_violations):
         print()
 
 # Read the validation report from a file
-file_path = 'vienna_results.txt'  # Adjust this path to your file location
+file_path = 'denhaag_results.txt'  # Adjust this path to your file location
 try:
     with open(file_path, 'r', encoding='utf-8') as file:
         report_text = file.read()
