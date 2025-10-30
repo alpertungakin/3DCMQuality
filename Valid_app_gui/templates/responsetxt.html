@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .validation-report {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+        }
+        .summary {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #721c24;
+        }
+        .group {
+            margin: 15px 0;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .group-header {
+            background: #f8f9fa;
+            padding: 5px 10px;
+            margin: -10px -10px 10px -10px;
+        }
+        .violation {
+            margin: 10px 0;
+            padding: 10px;
+            background: #fff5f5;
+            border-left: 3px solid #dc3545;
+        }
+        .field {
+            margin: 5px 0;
+        }
+        .field-label {
+            font-weight: bold;
+            color: #444;
+        }
+        select, input[type="file"] {
+            padding: 5px;
+            margin-bottom: 15px;
+        }
+        .progress {
+            margin-top: 10px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="validation-report">
+        <input type="file" id="fileInput" accept=".txt" onchange="handleFile(this.files)">
+        <div id="validationReport"></div>
+        <div id="progress" class="progress"></div>
+    </div>
+
+    <script>
+        let validationData = { conforms: false, results: [] };
+        const BATCH_SIZE = 500;
+
+        function esc (str) {
+            return String(str)
+                .replace(/&/g,  "&amp;")
+                .replace(/</g,  "&lt;")
+                .replace(/>/g,  "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function parseSHACLText(text) {
+            const lines = text.split('\n');
+            const result = { conforms: false, results: [] };
+            let currentResult = null;
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (line.startsWith('Conforms:')) {
+                    result.conforms = line.split(': ')[1];
+                } else if (line.startsWith('Constraint Violation')) {
+                    if (currentResult) result.results.push(currentResult);
+                    currentResult = {};
+                } else if (line.startsWith('Severity:')) {
+                    currentResult.severity = line.split(': ')[1];
+                } else if (line.startsWith('Source Shape:')) {
+                    currentResult.sourceShape = line.split(': ')[1];
+                } else if (line.startsWith('Focus Node:')) {
+                    currentResult.focusNode = line.split(': ')[1];
+                } else if (line.startsWith('Result Path:')) {
+                    currentResult.resultPath = line.split(': ')[1];
+                } else if (line.startsWith('Message:')) {
+                    currentResult.message = line.split(': ')[1];
+                }
+            });
+            if (currentResult) result.results.push(currentResult);
+            return result;
+        }
+
+        function renderBatch(groupBy, startIndex, container) {
+            const endIndex = Math.min(startIndex + BATCH_SIZE, validationData.results.length);
+            const progress = document.getElementById('progress');
+            progress.textContent = `Rendering ${startIndex} - ${endIndex} of ${validationData.results.length} results...`;
+
+            // Group results for this batch
+            const groupedResults = {};
+            for (let i = startIndex; i < endIndex; i++) {
+                const result = validationData.results[i];
+                const key = result[groupBy];
+                if (!groupedResults[key]) {
+                    groupedResults[key] = [];
+                }
+                groupedResults[key].push(result);
+            }
+
+            let html = '';
+            // Render each group fully within the batch
+            for (const [key, violations] of Object.entries(groupedResults)) {
+                html += `
+                    <div class="group">
+                        <div class="group-header">${groupBy === 'focusNode' ? 'Focus Node' : 'Source Shape'}: ${key}</div>
+                `;
+                violations.forEach(v => {
+                    html += `
+                        <div class="violation">
+                            <div class="field"><span class="field-label">Severity:</span> ${esc(v.severity)}</div>
+                            <div class="field"><span class="field-label">${groupBy === 'focusNode' ? 'Source Shape:' : 'Focus Node:'}</span> ${groupBy === 'focusNode' ? esc(v.sourceShape) :esc(v.focusNode)}</div>
+                            <div class="field"><span class="field-label">Result Path:</span> ${esc(v.resultPath)}</div>
+                            <div class="field"><span class="field-label">Message:</span> ${esc(v.message)}</div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+
+            container.insertAdjacentHTML('beforeend', html);
+
+            if (endIndex < validationData.results.length) {
+                setTimeout(() => renderBatch(groupBy, endIndex, container), 0);
+            } else {
+                progress.textContent = 'Rendering complete.';
+            }
+        }
+
+        function renderReport(groupBy = 'focusNode') {
+            const container = document.getElementById('validationReport');
+            container.innerHTML = `
+                <div class="summary">Conforms: ${validationData.conforms}</div>
+                <select id="groupSelect" onchange="changeGrouping(this.value)">
+                    <option value="focusNode" ${groupBy === 'focusNode' ? 'selected' : ''}>Group by Focus Node</option>
+                    <option value="sourceShape" ${groupBy === 'sourceShape' ? 'selected' : ''}>Group by Source Shape</option>
+                </select>
+            `;
+
+            if (validationData.results.length === 0) {
+                container.innerHTML += '<p>No validation results to display. Please upload a SHACL validation report.</p>';
+            } else {
+                renderBatch(groupBy, 0, container);
+            }
+        }
+
+        function changeGrouping(groupBy) {
+            const container = document.getElementById('validationReport');
+            container.innerHTML = ''; // Clear previous content
+            validationData.results = validationData.results; // Keep data
+            renderReport(groupBy);
+        }
+
+        function handleFile(files) {
+            if (files.length === 0) return;
+            const file = files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const text = e.target.result;
+                validationData = parseSHACLText(text);
+                document.getElementById('progress').textContent = 'Parsing complete. Starting render...';
+                renderReport('focusNode');
+            };
+
+            reader.readAsText(file);
+        }
+
+        // Initial render (empty state)
+        renderReport('focusNode');
+    </script>
+</body>
+</html>
