@@ -1,10 +1,10 @@
-**The repository of "[Leveraging Knowledge Graphs and Semantic Web Technologies for Validating 3D City Models](https://doi.org/10.1080/13658816.2025.2578723)"**
+## **The repository of "[Leveraging Knowledge Graphs and Semantic Web Technologies for Validating 3D City Models](https://doi.org/10.1080/13658816.2025.2578723)"**
 
 ***Prerequisites***
 
 * [Anaconda](https://www.anaconda.com/) or Miniconda
 
-***Installation***
+## Installation
 
 ```bash
 # Fetch the repo
@@ -15,7 +15,7 @@ conda env create -f environment.yml
 conda activate validation3d
 ```
 
-***Run the application***
+## Run the application
 
 ```bash
 python app.py
@@ -24,7 +24,7 @@ python app.py
 The Flask server starts at **[http://127.0.0.1:5000](http://127.0.0.1:5000)**.
 
 
-***Using the Interface***
+## Using the Interface
 
 1. **Select an ontology** – choose **“Validation ontology based on QIE 2016.”**
 2. **Upload a CityJSON file** – sample data live in the `cityjson/` folder.
@@ -39,7 +39,7 @@ The Flask server starts at **[http://127.0.0.1:5000](http://127.0.0.1:5000)**.
 
 ---
 
-***Reproducing Table 5 (Violation Percantages)***
+## Reproducing Table 5 (Violation Percantages)
 
 With the `validation3d` environment active:
 
@@ -57,7 +57,7 @@ When prompted, enter the object totals below, after selecting the report file th
 
 ---
 
-***Troubleshooting***
+## Troubleshooting
 
 | Symptom                                           | Fix                                                                                    |
 | ------------------------------------------------- | -------------------------------------------------------------------------------------- |
@@ -66,13 +66,13 @@ When prompted, enter the object totals below, after selecting the report file th
 
 ---
 
-***License & Citation***
+## License & Citation
 
-This repository is released under the **MIT License**.
-***Citation***:
+This repository is distributed under the **CC BY-NC 4.0** license.
+You may use the code for academic and research purposes with proper citation.
+Commercial use requires prior permission from the author.
+
 ```bibtex
 @article{akın_usta_stoter_arroyo ohori_cömert_2025, title={Leveraging knowledge graphs and semantic web technologies for validating 3D city models}, ISSN={1365-8816}, DOI={10.1080/13658816.2025.2578723}, journal={International Journal of Geographical Information Science}, publisher={International Journal of Geographical Information Science}, author={Akın, Alper Tunga and Usta, Ziya and Stoter, Jantien and Arroyo Ohori, Ken and Cömert, Çetin}, year={2025}, pages={1–27} }
-
-
 .
 ```
