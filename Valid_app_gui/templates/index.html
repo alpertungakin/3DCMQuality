@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Validation for CityJSON models</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1 style="text-align:center; color: green;">Validation interface for LOD2.x CityJSON Models</h1>
+    <h1 class="app-title">Validation interface for LOD2.x CityJSON Models</h1>
     <div class="container-fluid overflow-hidden">
         <div class="row no-gutters">
             <div class="col">
@@ -20,9 +23,15 @@
                 </select><br>
                 <h3>Upload CityJSON File</h3>
                 <input type="file" id="fileInput">
+                <div class="epsg-row">
+                    <input type="text" id="epsgOverride" class="form-control epsg-input"
+                           placeholder="EPSG code (only if basemap doesn't appear)"
+                           inputmode="numeric" pattern="[0-9]*">
+                    <button type="button" class="btn btn-secondary apply-epsg-btn" id="applyEpsgBtn">Apply</button>
+                </div>
                 <div class="action_btn">
                     <button class="btn btn-primary" id="uploadBtn">Upload</button>
-                    <button style="margin-left: 100px" class="btn btn-warning" id="gltfButton">View Full Model</button>
+                    <button class="btn btn-warning" id="gltfButton">View Full Model</button>
                 </div>
                 <div id="displayContent"></div>
             </div>
@@ -42,10 +51,11 @@
         <button class="btn btn-success" id="processBtn">Process Data</button>
         <button class="btn btn-success" id="downloadBtn" style="visibility:hidden">Download Report</button>
         <button class="btn btn-success" id="visualizeBtn" style="visibility:hidden">Visualize Invalid Objects</button>
-        <button class="btn btn-primary" data-url="{{ url_for('results_page') }}" style="float: right;" id="resultparseBtn">Validation Results Interface</button>
+        <button class="btn btn-primary results-btn" data-url="{{ url_for('results_page') }}" id="resultparseBtn">Validation Results Interface</button>
         <div id="responseLoader" class="spinner-border text-primary " style="display: inline-flex; visibility: hidden;" role="status">
             <span class="sr-only"></span>
         </div>
+        <button class="toggle-response" id="toggleResponseBtn" type="button" aria-label="Collapse validation report" title="Collapse validation report">−</button>
         <div id="responseText" class="response"></div>
     </div>
     <script src="{{ url_for('static', filename='script_hl_2.js') }}"></script>

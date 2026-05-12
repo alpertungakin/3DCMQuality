@@ -19,12 +19,79 @@ import cjio as cj
 from cjio import cityjson
 import io
 import base64
+import cityjson2glb
+from cityjson_bracket_cleaner import clean_json_file
 
-currDate = datetime.datetime.now()
+
+class _IdentityTransformer:
+    # Passthrough used in place of an ECEF pyproj transformer so vertices stay
+    # in the model's native CRS — ECEF inflates them to ~5e6 m, breaking float32
+    # precision and producing a tilted "up" direction in the three.js viewer.
+    @staticmethod
+    def transform(x, y, z):
+        return x, y, z
+
+
+def _extract_epsg_from_reference_system(crs_str):
+    """Pull the EPSG integer out of any of the formats CityJSON files use:
+    "EPSG:2150", "urn:ogc:def:crs:EPSG::2150", or the OGC URL form
+    "https://www.opengis.net/def/crs/EPSG/0/2150". cjio.get_epsg() handles the
+    first two but not the URL — Vienna/Montreal models tend to use the URL."""
+    if not crs_str:
+        return None
+    parts = re.split(r'[:/]', str(crs_str))
+    for part in reversed(parts):
+        if part.isdigit():
+            return int(part)
+    return None
+
+
+# Last-resort EPSG lookup by city keyword. Triggered when cm.get_epsg() returns
+# nothing and metadata.referenceSystem doesn't yield a code. Match is
+# case-insensitive over metadata.title and metadata.identifier.
+_CITY_EPSG_HINTS = {
+    'vienna': 31256,
+    'wien': 31256,
+    'austria': 31256,
+    'montreal': 2950,
+    'quebec': 2950,
+    'amsterdam': 28992,
+    'rotterdam': 28992,
+    'netherlands': 28992,
+    'helsinki': 3879,
+    'zurich': 2056,
+    'zürich': 2056,
+    'paris': 2154,
+    'berlin': 25833,
+    'munich': 25832,
+    'münchen': 25832,
+}
+
+
+def _guess_epsg_from_metadata(metadata):
+    """Look for city/country keywords in metadata.title/identifier so files
+    with no referenceSystem still get a chance at a basemap."""
+    if not metadata:
+        return None
+    haystack = ' '.join(
+        str(metadata.get(k, '')) for k in ('title', 'identifier', 'datasetTopicCategory')
+    ).lower()
+    for keyword, epsg in _CITY_EPSG_HINTS.items():
+        if keyword in haystack:
+            return epsg
+    return None
+
 app = Flask(__name__)
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+RECEIVED_DIR = os.path.join(BASE_DIR, 'received')
+RDFS_DIR = os.path.join(BASE_DIR, 'rdfs')
+RESULTS_DIR = os.path.join(BASE_DIR, 'results')
+for _d in (RECEIVED_DIR, RDFS_DIR, RESULTS_DIR):
+    os.makedirs(_d, exist_ok=True)
+
 #SHACL for CityJSON validation
-ontodirec = os.path.join('ontologies', "shacl4cg_v2.ttl")
+ontodirec = os.path.join(BASE_DIR, 'ontologies', "shacl4cg_v2.ttl")
 #valpath = open(ontodirec, "r")
 #shacl4cg = valpath.read()
 #valpath.close()
@@ -59,38 +126,121 @@ def get_gltf():
         return jsonify({'error': 'No file provided'}), 400
 
     try:
+        ts = datetime.datetime.now().timestamp()
         # Save the uploaded file temporarily
-        temp_file_path = os.path.join('received', 'temp_cityjson_{}.json'.format(currDate.timestamp()))
+        temp_file_path = os.path.join(RECEIVED_DIR, 'temp_cityjson_{}.json'.format(ts))
         uploaded_file.save(temp_file_path)
         print("File saved temporarily")  # Debugging
 
-        # Parse the CityJSON file
-        with open(temp_file_path, "r", encoding="utf-8-sig") as f:
-            cm = cityjson.reader(file=f)
+        # Run the same bracket-stripping pass that json2rdf does, so the OBJ_ID
+        # values baked into the GLB property table match the bare-UUID IDs in
+        # the URI list (which come from the /process_texts → json2rdf path).
+        # Otherwise IDs like "{0031458C-...}" on the GLB side and "0031458C-..."
+        # on the URI side never match and feature highlighting fails.
+        cleaned_path = clean_json_file(
+            temp_file_path,
+            os.path.join(RECEIVED_DIR, 'cleaned_temp_{}.json'.format(ts)),
+        )
+
+        # Parse the CityJSON file. Use cityjson.load (not cityjson.reader) so
+        # cm.load_from_j() runs and dereferences boundaries into coordinate
+        # triples — cityjson2glb's writer iterates real coords, not vertex indices.
+        cm = cityjson.load(cleaned_path)
         print("CityJSON parsed successfully")  # Debugging
 
-        # Export to GLB
-        glb_data = cm.export2glb()
-        print("GLB export successful")  # Debugging
-
         # Generate a unique filename
-        fileNameGLB = f"{request.remote_addr}_{currDate.timestamp()}.glb"
-        direcGLB = os.path.join('received', fileNameGLB)
+        fileNameGLB = f"{request.remote_addr}_{ts}.glb"
+        direcGLB = os.path.join(RECEIVED_DIR, fileNameGLB)
 
-        # Write the GLB data to a file
-        with open(direcGLB, "wb") as glb_file:
-            glb_file.write(glb_data.getvalue())
+        # Export to GLB using the local cityjson2glb writer. We pass an identity
+        # transformer (no ECEF reprojection) and let glb_writer recenter the
+        # vertices around the model centroid so coordinates stay small.
+        city_objects = list(cm.cityobjects.keys())
+        centroid = cityjson2glb.cityjson_to_glb(city_objects, cm, _IdentityTransformer(), direcGLB)
+        if not os.path.exists(direcGLB):
+            raise RuntimeError("cityjson2glb did not produce an output file")
         print("GLB file written successfully")  # Debugging
-        # glb_base64 = base64.b64encode(glb_data.getvalue()).decode('utf-8')
-        # Clean up the temporary file
-        # return jsonify({
-        #     'response': {
-        #         'glbBase64': glb_base64,
-        #         'fileName': f"{request.remote_addr}_{currDate.timestamp()}.glb"
-        #     }
-        # })
+
+        # Transform the recentering centroid to WGS84 so the frontend can drop
+        # an OSM basemap under the model. Logs reasons for skipping so the
+        # browser console can show "no basemap was added because…" when this
+        # silently returns null lat/lng.
+        import math
+        lat = None
+        lng = None
+        if centroid is None:
+            print("[basemap] cityjson2glb did not return a centroid; skipping")
+        elif not all(math.isfinite(c) for c in centroid):
+            print(f"[basemap] centroid has non-finite components: {centroid}; skipping")
+        else:
+            try:
+                import pyproj
+
+                # Resolution order:
+                #   1. Explicit override from the client form (`epsg`).
+                #   2. cjio's parser (handles "EPSG:N" and "urn:...EPSG::N").
+                #   3. Manual regex on metadata.referenceSystem (handles the
+                #      "https://www.opengis.net/def/crs/EPSG/0/N" URL form).
+                #   4. City-keyword guesser over metadata.title/identifier.
+                # Step 1 — request override.
+                client_epsg = (request.form.get('epsg') or '').strip()
+                epsg = None
+                if client_epsg.isdigit():
+                    epsg = int(client_epsg)
+                    print(f"[basemap] EPSG override from client: {epsg}")
+
+                # Step 2 — cjio's own parser.
+                if not epsg:
+                    epsg = cm.get_epsg()
+
+                # Step 3 — raw referenceSystem (URL form).
+                raw_ref = None
+                if not epsg:
+                    try:
+                        raw_ref = cm.j.get('metadata', {}).get('referenceSystem')
+                        epsg = _extract_epsg_from_reference_system(raw_ref)
+                        if epsg:
+                            print(f"[basemap] EPSG parsed from referenceSystem={raw_ref!r}: {epsg}")
+                    except Exception as parse_err:
+                        print(f"[basemap] failed reading metadata.referenceSystem: {parse_err}")
+
+                # Step 4 — city-keyword guesser. Dump full metadata + transform
+                # so the user can pick an override if our guess is wrong.
+                if not epsg:
+                    md = cm.j.get('metadata') or {}
+                    tf = cm.j.get('transform') or {}
+                    print(f"[basemap] metadata={md}")
+                    print(f"[basemap] transform={tf}")
+                    epsg = _guess_epsg_from_metadata(md)
+                    if epsg:
+                        print(f"[basemap] EPSG guessed from city keyword in metadata: {epsg}")
+                    else:
+                        print("[basemap] no EPSG hint found in metadata; pass `epsg` form field to override")
+
+                print(f"[basemap] centroid={centroid}, EPSG={epsg}")
+                if not epsg:
+                    print("[basemap] no EPSG available; skipping")
+                else:
+                    to_wgs = pyproj.Transformer.from_crs(epsg, 4326, always_xy=True)
+                    # Some CityJSON files declare a 2.5D/compound CRS; pyproj
+                    # then expects three inputs. Try 3D first, fall back to 2D.
+                    try:
+                        result = to_wgs.transform(centroid[0], centroid[1], centroid[2])
+                        lng, lat = result[0], result[1]
+                    except Exception:
+                        lng, lat = to_wgs.transform(centroid[0], centroid[1])
+                    if not (math.isfinite(lat) and math.isfinite(lng)):
+                        print(f"[basemap] pyproj returned non-finite (lat={lat}, lng={lng}); skipping")
+                        lat, lng = None, None
+                    else:
+                        print(f"[basemap] -> lat={lat}, lng={lng}")
+            except Exception as proj_err:
+                print(f"[basemap] centroid → WGS84 failed: {proj_err}")
+
         return jsonify({
-            'response' : fileNameGLB
+            'response': fileNameGLB,
+            'lat': lat,
+            'lng': lng,
         })
 
     except UnicodeDecodeError as e:
@@ -103,20 +253,20 @@ def get_gltf():
 @app.route('/download/<filename>', methods=['GET'])
 def download(filename):
     # Serve files from the 'received' directory
-    return send_from_directory('received', filename, as_attachment=False)
+    return send_from_directory(RECEIVED_DIR, filename, as_attachment=False)
 
 @app.route('/process_texts', methods=['POST'])
 def process_texts():
     text1 = request.form.get('cityjson')
     text2 = request.form.get('ontology')
-    fileNameRDF = request.remote_addr + "_" + str(currDate.timestamp())
-    direc1 = os.path.join('received', fileNameRDF + ".city" + ".json")
+    fileNameRDF = request.remote_addr + "_" + str(datetime.datetime.now().timestamp())
+    direc1 = os.path.join(RECEIVED_DIR, fileNameRDF + ".city" + ".json")
     filepath = open(direc1, "w")
     filepath.write(text1)
     filepath.close()
     print(direc1)
     rdfGraph = json2rdf.main(direc1)
-    direc2 = os.path.join('rdfs', "{}.ttl".format(fileNameRDF))
+    direc2 = os.path.join(RDFS_DIR, "{}.ttl".format(fileNameRDF))
     rdfTurtle = rdfGraph.serialize(direc2, "ttl")  
 
     # direc2 = os.path.join('rdfs', "{}.ttl".format(fileNameRDF))
@@ -144,7 +294,7 @@ def process_texts():
 
     validity, results_graph, results_text = r
 
-    direc4 = ontodirec = os.path.join('results', "report_{}.txt".format(fileNameRDF))
+    direc4 = ontodirec = os.path.join(RESULTS_DIR, "report_{}.txt".format(fileNameRDF))
     val = open(direc4, "w")
     val.write(results_text)
     val.close()

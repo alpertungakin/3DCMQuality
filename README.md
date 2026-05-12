@@ -11,8 +11,8 @@
 git clone https://github.com/alpertungakin/3DCMQuality.git
 cd 3DCMQuality/Valid_app_gui
 # Create & activate the Conda environment
-conda env create -f environment.yml
-conda activate validation3d
+conda env create -f validation.yaml
+conda activate validation
 ```
 
 ## Run the application
@@ -41,7 +41,7 @@ The Flask server starts at **[http://127.0.0.1:5000](http://127.0.0.1:5000)**.
 
 ## Reproducing Table 5 (Violation Percantages)
 
-With the `validation3d` environment active:
+With the `validation` environment active:
 
 ```bash
 python violations_summary_concerngranules.py
